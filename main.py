@@ -73,8 +73,14 @@ def whatsapp_reply():
             estado_actual["pedido"]["con_todo"] = False
             estado_actual["paso"] = "esperando_exclusiones"
             msg.body(f"¡Entendido! Sin todo. ¿Hay algo en específico que **NO** le ponemos?\n\n(Ej: *cebolla, tomate*)")
+        elif "sin" in incoming_msg:
+            estado_actual["pedido"]["con_todo"] = False
+            exclusiones = [item.strip() for item in incoming_msg.replace("sin", "").split(",")]
+            estado_actual["pedido"]["exclusiones"] = exclusiones
+            estado_actual["paso"] = "esperando_extras"
+            msg.body("¡Anotado, compa! Ya no le echamos eso. ¿Quieres algo extra de la barra? 🍄🧀\n\n(Si no quieres nada, escribe *no*)")
         else:
-            msg.body("Nomás dime si lo quieres *con todo* o *no*, compa. 😅")
+            msg.body("Nomás dime si lo quieres *con todo*, *no* o *sin* algún ingrediente específico 😅")
         return str(resp)
 
     if paso_actual == "esperando_exclusiones":
