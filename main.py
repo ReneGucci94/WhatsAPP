@@ -106,10 +106,12 @@ def whatsapp_reply():
         resumen += f"Sucursal: *{pedido['sucursal']}*\n"
         resumen += f"Dogo: *{pedido['tipo_dogo']['nombre']}* (${pedido['tipo_dogo']['precio']})\n"
 
-        if pedido.get("con_todo"):
+        if pedido.get("con_todo") is True:
             resumen += "Con todo: *Sí*\n"
+        elif pedido.get("exclusiones"):
+            resumen += f"Sin: *{', '.join(pedido['exclusiones'])}*\n"
         else:
-            resumen += f"Sin: *{', '.join(pedido.get('exclusiones', ['Ninguno']))}*\n"
+            resumen += "Con todo: *No especificado*\n"
 
         if pedido.get("extras"):
             resumen += f"Extras: *{', '.join(pedido['extras'])}*\n"
