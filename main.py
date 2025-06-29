@@ -36,6 +36,11 @@ def whatsapp_reply():
     paso_actual = estado_actual.get("paso")
 
     if paso_actual == "esperando_sucursal":
+        # Ignorar saludos comunes sin romper el flujo
+        if incoming_msg in ["hola", "buenas", "buenos días", "buenas tardes", "buenas noches"]:
+            msg.body("¿Pa’ qué sucursal va a ser el dogo?\n\n👉 *Jardines*\n👉 *Pueblitos*\n👉 *Puerta Real*")
+            return str(resp)
+
         sucursal_elegida = None
         if "jardines" in incoming_msg: sucursal_elegida = "Jardines"
         elif "pueblitos" in incoming_msg: sucursal_elegida = "Pueblitos"
@@ -50,6 +55,15 @@ def whatsapp_reply():
         return str(resp)
 
     if paso_actual == "esperando_dogo":
+        # Ignorar saludos comunes sin romper el flujo
+        if incoming_msg in ["hola", "buenas", "buenos días", "buenas tardes", "buenas noches"]:
+            sucursal = estado_actual["pedido"].get("sucursal", "")
+            msg.body(
+                f"¡Fierro, pa’ *{sucursal}*! 🔥 Ahora, ármate el dogo a tu gusto:\n\n"
+                "🌭 Sencillo\n🌭🌭 Doble\n📏 De a Metro\n🥐 Churro-Dogo"
+            )
+            return str(resp)
+
         tipo_dogo_elegido = None
         for key, value in MENU.items():
             if key in incoming_msg:
@@ -65,6 +79,14 @@ def whatsapp_reply():
         return str(resp)
 
     if paso_actual == "esperando_con_todo":
+        # Ignorar saludos comunes sin romper el flujo
+        if incoming_msg in ["hola", "buenas", "buenos días", "buenas tardes", "buenas noches"]:
+            tipo = estado_actual["pedido"].get("tipo_dogo", {}).get("nombre", "")
+            msg.body(
+                f"¡Bien! Un *{tipo}*.\n¿Lo quieres *con todo*? 😋\n\n(Lleva: {', '.join(INGREDIENTES_BASE)})\n\n✅ Escribe *sí*\n❌ Escribe *no*"
+            )
+            return str(resp)
+
         if incoming_msg.startswith("sin"):
             estado_actual["pedido"]["con_todo"] = False
             exclusiones = [item.strip() for item in incoming_msg.replace("sin", "").split(",")]
@@ -84,6 +106,11 @@ def whatsapp_reply():
         return str(resp)
 
     if paso_actual == "esperando_exclusiones":
+        # Ignorar saludos comunes sin romper el flujo
+        if incoming_msg in ["hola", "buenas", "buenos días", "buenas tardes", "buenas noches"]:
+            msg.body("¡Entendido! Sin todo. ¿Hay algo en específico que **NO** le ponemos?\n\n(Ej: *cebolla, tomate*)")
+            return str(resp)
+
         exclusiones = [item.strip() for item in incoming_msg.split(',')]
         estado_actual["pedido"]["exclusiones"] = exclusiones
         estado_actual["paso"] = "esperando_extras"
@@ -91,6 +118,11 @@ def whatsapp_reply():
         return str(resp)
 
     if paso_actual == "esperando_extras":
+        # Ignorar saludos comunes sin romper el flujo
+        if incoming_msg in ["hola", "buenas", "buenos días", "buenas tardes", "buenas noches"]:
+            msg.body("¿Quieres algo extra de la barra? 🍄🧀\n\n(Si no quieres nada, escribe *no*)")
+            return str(resp)
+
         if "no" in incoming_msg:
             estado_actual["pedido"]["extras"] = []
         else:
@@ -122,6 +154,26 @@ def whatsapp_reply():
         return str(resp)
 
     if paso_actual == "confirmando":
+        # Ignorar saludos comunes sin romper el flujo
+        if incoming_msg in ["hola", "buenas", "buenos días", "buenas tardes", "buenas noches"]:
+            pedido = estado_actual["pedido"]
+            total = pedido["tipo_dogo"]["precio"]
+            resumen = f"📦 *Revisa tu Pedido:*\n"
+            resumen += f"Sucursal: *{pedido['sucursal']}*\n"
+            resumen += f"Dogo: *{pedido['tipo_dogo']['nombre']}* (${pedido['tipo_dogo']['precio']})\n"
+            if pedido.get("con_todo") is True:
+                resumen += "Con todo: *Sí*\n"
+            elif pedido.get("exclusiones"):
+                resumen += f"Sin: *{', '.join(pedido['exclusiones'])}*\n"
+            else:
+                resumen += "Con todo: *No especificado*\n"
+            if pedido.get("extras"):
+                resumen += f"Extras: *{', '.join(pedido['extras'])}*\n"
+            resumen += f"\n*Total a Pagar (Estimado): ${total} MXN*\n\n"
+            resumen += "¿Le damos pa’ delante? Escribe *sí* pa’ mandar a la plancha 🔥"
+            msg.body(resumen)
+            return str(resp)
+
         if "sí" in incoming_msg or "si" in incoming_msg:
             msg.body("¡Fierro, compa! Ya se mandó a la plancha tu obra de arte 🔥\nTu pedido #103 estará listo en 20 mins. ¡Gracias por tu pedido!")
             del estado_usuarios[user_id]
