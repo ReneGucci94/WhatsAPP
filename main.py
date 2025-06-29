@@ -36,15 +36,18 @@ def whatsapp_reply():
     paso_actual = estado_actual.get("paso")
 
     if paso_actual == "esperando_sucursal":
-        # Ignorar saludos comunes sin romper el flujo
+        # Ignorar saludos sin interrumpir el flujo
         if incoming_msg in ["hola", "buenas", "buenos días", "buenas tardes", "buenas noches"]:
             msg.body("¿Pa’ qué sucursal va a ser el dogo?\n\n👉 *Jardines*\n👉 *Pueblitos*\n👉 *Puerta Real*")
             return str(resp)
 
         sucursal_elegida = None
-        if "jardines" in incoming_msg: sucursal_elegida = "Jardines"
-        elif "pueblitos" in incoming_msg: sucursal_elegida = "Pueblitos"
-        elif "puerta" in incoming_msg: sucursal_elegida = "Puerta Real"
+        if "jardines" in incoming_msg:
+            sucursal_elegida = "Jardines"
+        elif "pueblitos" in incoming_msg:
+            sucursal_elegida = "Pueblitos"
+        elif "puerta" in incoming_msg:
+            sucursal_elegida = "Puerta Real"
 
         if sucursal_elegida:
             estado_actual["pedido"]["sucursal"] = sucursal_elegida
