@@ -3,6 +3,14 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
+MENU = {
+    "sencillo": {"nombre": "Dogo Sencillo", "precio": 55},
+    "doble": {"nombre": "Dogo Doble", "precio": 75},
+    "metro": {"nombre": "Dogo de a Metro", "precio": 450},
+    "churro": {"nombre": "Churro-Dogo", "precio": 80}
+}
+
+INGREDIENTES_BASE = ["frijol", "chorizo", "cebolla con tocino", "lechuga", "tomate", "mayonesa"]
 estado_usuarios = {}
 
 @app.route("/webhook", methods=["POST"])
@@ -12,93 +20,108 @@ def whatsapp_reply():
     resp = MessagingResponse()
     msg = resp.message()
 
-    if user_id not in estado_usuarios:
-        estado_usuarios[user_id] = {"paso": "esperando_sucursal"}
+    estado_actual = estado_usuarios.get(user_id)
+
+    if incoming_msg in ["cancelar", "reiniciar", "empezar de nuevo"]:
+        if user_id in estado_usuarios:
+            del estado_usuarios[user_id]
+        msg.body("¡Sale, compa! Pedido cancelado. Empezamos de cero cuando quieras, nomás manda cualquier mensaje.")
+        return str(resp)
+
+    if not estado_actual:
+        estado_usuarios[user_id] = {"paso": "esperando_sucursal", "pedido": {}}
         msg.body("¡Qué onda, compa! Bienvenido a *Dogos El Compadre* 🌭🔥\n¿Pa’ qué sucursal va a ser el dogo?\n\n👉 *Jardines*\n👉 *Pueblitos*\n👉 *Puerta Real*")
         return str(resp)
 
-    estado = estado_usuarios[user_id]
+    paso_actual = estado_actual.get("paso")
 
-    if estado["paso"] == "esperando_sucursal":
-        if "jardines" in incoming_msg:
-            estado["sucursal"] = "Jardines"
-        elif "pueblitos" in incoming_msg:
-            estado["sucursal"] = "Pueblitos"
-        elif "puerta" in incoming_msg:
-            estado["sucursal"] = "Puerta Real"
+    if paso_actual == "esperando_sucursal":
+        sucursal_elegida = None
+        if "jardines" in incoming_msg: sucursal_elegida = "Jardines"
+        elif "pueblitos" in incoming_msg: sucursal_elegida = "Pueblitos"
+        elif "puerta" in incoming_msg: sucursal_elegida = "Puerta Real"
+
+        if sucursal_elegida:
+            estado_actual["pedido"]["sucursal"] = sucursal_elegida
+            estado_actual["paso"] = "esperando_dogo"
+            msg.body(f"¡Fierro, pa’ *{sucursal_elegida}*! 🔥 Ahora, ármate el dogo a tu gusto:\n\n🌭 Sencillo\n🌭🌭 Doble\n📏 De a Metro\n🥐 Churro-Dogo")
         else:
             msg.body("No caché bien eso, compa. Escríbeme: *Jardines*, *Pueblitos* o *Puerta Real*.")
-            return str(resp)
-
-        estado["paso"] = "esperando_dogo"
-        msg.body(f"¡Fierro, pa’ *{estado['sucursal']}*! 🔥 Ahora, ármate el dogo a tu gusto:\n\n🌭 Sencillo\n🌭🌭 Doble\n📏 De a Metro\n🥐 Churro-Dogo")
         return str(resp)
 
-    if estado["paso"] == "esperando_dogo":
-        if "sencillo" in incoming_msg:
-            estado["tipo_dogo"] = "Sencillo"
-        elif "doble" in incoming_msg:
-            estado["tipo_dogo"] = "Doble"
-        elif "metro" in incoming_msg:
-            estado["tipo_dogo"] = "De a Metro"
-        elif "churro" in incoming_msg:
-            estado["tipo_dogo"] = "Churro-Dogo"
+    if paso_actual == "esperando_dogo":
+        tipo_dogo_elegido = None
+        for key, value in MENU.items():
+            if key in incoming_msg:
+                tipo_dogo_elegido = value
+                estado_actual["pedido"]["tipo_dogo"] = value
+                break
+
+        if tipo_dogo_elegido:
+            estado_actual["paso"] = "esperando_con_todo"
+            msg.body(f"¡Bien! Un *{tipo_dogo_elegido['nombre']}*.\n¿Lo quieres *con todo*? 😋\n\n(Lleva: {', '.join(INGREDIENTES_BASE)})\n\n✅ Escribe *sí*\n❌ Escribe *no*")
         else:
             msg.body("No entendí qué dogo quieres, compa. Escribe: *Sencillo*, *Doble*, *De a Metro* o *Churro-Dogo*.")
-            return str(resp)
-
-        estado["paso"] = "esperando_con_todo"
-        msg.body(f"¡Bien! Te vamos a preparar un *{estado['tipo_dogo']}*.\n¿Lo quieres *con todo*? 😋\n\n✅ Escribe *sí*\n❌ Escribe *no*")
         return str(resp)
 
-    if estado["paso"] == "esperando_con_todo":
+    if paso_actual == "esperando_con_todo":
         if "sí" in incoming_msg or "si" in incoming_msg:
-            estado["con_todo"] = True
+            estado_actual["pedido"]["con_todo"] = True
+            estado_actual["paso"] = "esperando_extras"
+            msg.body("¡Perfecto! ¿Quieres algo extra de la barra pa’ que amarre? 🍄🧀\n\n(Si no quieres nada, escribe *no*)")
         elif "no" in incoming_msg:
-            estado["con_todo"] = False
+            estado_actual["pedido"]["con_todo"] = False
+            estado_actual["paso"] = "esperando_exclusiones"
+            msg.body(f"¡Entendido! Sin todo. ¿Hay algo en específico que **NO** le ponemos?\n\n(Ej: *cebolla, tomate*)")
         else:
             msg.body("Nomás dime si lo quieres *con todo* o *no*, compa. 😅")
-            return str(resp)
-
-        estado["paso"] = "esperando_extras"
-        msg.body("¿Quieres algo extra de la barra pa’ que amarre? 🍄🧀\n\nEscribe lo que quieras agregar, como:\n- Queso Amarillo\n- Champiñones\n- Tocino\n(Si no quieres nada, escribe *no*)")
         return str(resp)
 
-    if estado["paso"] == "esperando_extras":
+    if paso_actual == "esperando_exclusiones":
+        exclusiones = [item.strip() for item in incoming_msg.split(',')]
+        estado_actual["pedido"]["exclusiones"] = exclusiones
+        estado_actual["paso"] = "esperando_extras"
+        msg.body("Anotado. ¿Y quieres agregar algo extra de la barra? 🍄🧀\n\n(Si no quieres agregar nada, escribe *no*)")
+        return str(resp)
+
+    if paso_actual == "esperando_extras":
         if "no" in incoming_msg:
-            estado["extras"] = []
+            estado_actual["pedido"]["extras"] = []
         else:
-            # Separa los extras por comas y limpia los espacios en blanco
-            extras_list = [
-                extra.strip().capitalize()
-                for extra in incoming_msg.split(',')
-                if extra.strip()
-            ]
-            estado["extras"] = extras_list
+            extras = [item.strip().capitalize() for item in incoming_msg.split(',')]
+            estado_actual["pedido"]["extras"] = extras
 
-        estado["paso"] = "confirmando"
+        estado_actual["paso"] = "confirmando"
 
-        resumen = f"📦 *Tu Pedido:*\nSucursal: {estado['sucursal']}\nDogo: {estado['tipo_dogo']}"
-        resumen += "\nCon todo: Sí" if estado.get("con_todo") else "\nCon todo: No"
-        if estado.get("extras"):
-            resumen += f"\nExtras: {', '.join(estado['extras'])}"
+        pedido = estado_actual['pedido']
+        total = pedido['tipo_dogo']['precio']
+
+        resumen = f"📦 *Revisa tu Pedido:*\n"
+        resumen += f"Sucursal: *{pedido['sucursal']}*\n"
+        resumen += f"Dogo: *{pedido['tipo_dogo']['nombre']}* (${pedido['tipo_dogo']['precio']})\n"
+
+        if pedido.get("con_todo"):
+            resumen += "Con todo: *Sí*\n"
         else:
-            resumen += "\nExtras: Ninguno"
+            resumen += f"Sin: *{', '.join(pedido.get('exclusiones', ['Ninguno']))}*\n"
 
-        resumen += "\n\n¿Le damos pa’ delante? Escribe *sí* pa’ mandar a la plancha 🔥"
+        if pedido.get("extras"):
+            resumen += f"Extras: *{', '.join(pedido['extras'])}*\n"
 
+        resumen += f"\n*Total a Pagar (Estimado): ${total} MXN*\n\n"
+        resumen += "¿Le damos pa’ delante? Escribe *sí* pa’ mandar a la plancha 🔥"
         msg.body(resumen)
         return str(resp)
 
-    if estado["paso"] == "confirmando":
+    if paso_actual == "confirmando":
         if "sí" in incoming_msg or "si" in incoming_msg:
-            msg.body("¡Fierro, compa! Ya se mandó a la plancha tu obra de arte 🔥\nEn unos minutos estará listo. ¡Gracias por tu pedido!")
+            msg.body("¡Fierro, compa! Ya se mandó a la plancha tu obra de arte 🔥\nTu pedido #103 estará listo en 20 mins. ¡Gracias por tu pedido!")
             del estado_usuarios[user_id]
         else:
-            msg.body("Ok, si quieres cambiar algo nomás dime. Si todo está bien, escribe *sí*.")
+            msg.body("Ok, pedido no confirmado. Escribe *cancelar* para empezar de nuevo o *sí* para confirmar.")
         return str(resp)
 
-    msg.body("Espérame compa, todavía estoy calentando la plancha 🧠. Próximamente más funciones.")
+    msg.body("No te entendí, compa. Si quieres empezar de nuevo, escribe *cancelar*.")
     return str(resp)
 
 if __name__ == "__main__":
