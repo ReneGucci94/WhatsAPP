@@ -134,3 +134,4 @@ def whatsapp_reply():
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=8080)
+# Versión refinada 2.1 con resumen de exclusiones corregido
