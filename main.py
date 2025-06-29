@@ -53,6 +53,11 @@ def whatsapp_reply():
             return str(resp)
     
         paso_actual = estado_actual.get("paso")
+        print("----- DEPURANDO -----")
+        print("Paso actual:", paso_actual)
+        print("Mensaje entrante:", incoming_msg)
+        print("Estado actual:", estado_actual)
+        print("---------------------")
     
         if paso_actual == "esperando_sucursal":
             sucursal = None
@@ -157,3 +162,6 @@ def whatsapp_reply():
         resp = MessagingResponse()
         resp.message("Tuvimos un error interno, compa. Intenta otra vez o manda *cancelar*.")
         return str(resp)
+
+if __name__ == "__main__":
+    app.run(debug=True)
