@@ -31,6 +31,10 @@ def whatsapp_reply():
     if not estado_actual:
         estado_actual = {"paso": "esperando_sucursal", "pedido": {}}
         estado_usuarios[user_id] = estado_actual
+        msg.body(
+            "¡Qué onda, compa! Bienvenido a *Dogos El Compadre* 🌭🔥\n¿Pa’ qué sucursal va a ser el dogo?\n\n👉 *Jardines*\n👉 *Pueblitos*\n👉 *Puerta Real*"
+        )
+        return str(resp)
 
     paso_actual = estado_actual.get("paso")
 
