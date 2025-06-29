@@ -65,20 +65,20 @@ def whatsapp_reply():
         return str(resp)
 
     if paso_actual == "esperando_con_todo":
-        if "sí" in incoming_msg or "si" in incoming_msg:
-            estado_actual["pedido"]["con_todo"] = True
-            estado_actual["paso"] = "esperando_extras"
-            msg.body("¡Perfecto! ¿Quieres algo extra de la barra pa’ que amarre? 🍄🧀\n\n(Si no quieres nada, escribe *no*)")
-        elif "no" in incoming_msg:
-            estado_actual["pedido"]["con_todo"] = False
-            estado_actual["paso"] = "esperando_exclusiones"
-            msg.body(f"¡Entendido! Sin todo. ¿Hay algo en específico que **NO** le ponemos?\n\n(Ej: *cebolla, tomate*)")
-        elif "sin" in incoming_msg:
+        if incoming_msg.startswith("sin"):
             estado_actual["pedido"]["con_todo"] = False
             exclusiones = [item.strip() for item in incoming_msg.replace("sin", "").split(",")]
             estado_actual["pedido"]["exclusiones"] = exclusiones
             estado_actual["paso"] = "esperando_extras"
             msg.body("¡Anotado, compa! Ya no le echamos eso. ¿Quieres algo extra de la barra? 🍄🧀\n\n(Si no quieres nada, escribe *no*)")
+        elif incoming_msg in ["no"]:
+            estado_actual["pedido"]["con_todo"] = False
+            estado_actual["paso"] = "esperando_exclusiones"
+            msg.body(f"¡Entendido! Sin todo. ¿Hay algo en específico que **NO** le ponemos?\n\n(Ej: *cebolla, tomate*)")
+        elif incoming_msg in ["sí", "si"]:
+            estado_actual["pedido"]["con_todo"] = True
+            estado_actual["paso"] = "esperando_extras"
+            msg.body("¡Perfecto! ¿Quieres algo extra de la barra pa’ que amarre? 🍄🧀\n\n(Si no quieres nada, escribe *no*)")
         else:
             msg.body("Nomás dime si lo quieres *con todo*, *no* o *sin* algún ingrediente específico 😅")
         return str(resp)
