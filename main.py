@@ -72,7 +72,7 @@ def whatsapp_reply():
 
         tipo_dogo_elegido = None
         for key, value in MENU.items():
-            if key in incoming_msg:
+            if key in incoming_msg.lower():
                 tipo_dogo_elegido = value
                 estado_actual["pedido"]["tipo_dogo"] = value
                 break
@@ -191,5 +191,5 @@ def whatsapp_reply():
     return str(resp)
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=8080)
+    app.run(debug=False, host="0.0.0.0", port=8080, threaded=True)
 # Versión refinada 2.1 con resumen de exclusiones corregido
